@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Control de Pollada</title>
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    background:#f7f7f7;
+    padding:20px;
+}
+
+.contenedor{
+    max-width:700px;
+    margin:auto;
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 0 10px #aaa;
+}
+
+h1{
+    text-align:center;
+    color:#c62828;
+}
+
+input,button{
+    width:100%;
+    padding:12px;
+    margin:8px 0;
+    border-radius:8px;
+}
+
+button{
+    background:#c62828;
+    color:white;
+    border:none;
+    cursor:pointer;
+    font-size:16px;
+}
+
+.stock{
+    background:#fff3cd;
+    padding:15px;
+    border-radius:10px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+}
+
+th,td{
+    border:1px solid #aaa;
+    padding:8px;
+    text-align:center;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="contenedor">
+
+
+<h1>🐔 Control de Pollada</h1>
+
+
+<div class="stock">
+
+<h3>Stock Disponible</h3>
+
+
+<p>
+Pecho:
+<b id="pecho">45</b>
+</p>
+
+
+<p>
+Pierna:
+<b id="pierna">45</b>
+</p>
+
+
+</div>
+
+
+
+<h3>Registrar Pedido</h3>
+
+
+<input id="nombre" placeholder="Ingrese nombres">
+
+
+<input id="area" placeholder="Área de trabajo">
+
+
+<input id="cantidadPecho"
+type="number"
+placeholder="Cantidad de Pecho">
+
+
+<input id="cantidadPierna"
+type="number"
+placeholder="Cantidad de Pierna">
+
+
+
+<button onclick="registrar()">
+Registrar Pedido
+</button>
+
+
+
+<h3>Lista de Personas Registradas</h3>
+
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Nombre</th>
+<th>Área</th>
+<th>Pecho</th>
+<th>Pierna</th>
+<th>Total</th>
+
+</tr>
+
+</thead>
+
+
+<tbody id="lista">
+
+</tbody>
+
+
+</table>
+
+
+</div>
+
+
+
+
+
+<script type="module">
+
+
+import { initializeApp } 
+from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+
+
+import {
+
+getFirestore,
+doc,
+getDoc,
+setDoc,
+collection,
+addDoc,
+getDocs
+
+}
+
+from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+
+
+
+
+const firebaseConfig = {
+
+apiKey: "AIzaSyCeAmLyfU36v261ZbGIMMvchuVqzF8HtZo",
+
+authDomain: "pollada-pro-salud.firebaseapp.com",
+
+projectId: "pollada-pro-salud",
+
+storageBucket: "pollada-pro-salud.firebasestorage.app",
+
+messagingSenderId: "699468005257",
+
+appId: "1:699468005257:web:7368538a456b6e89f3eb58",
+
+measurementId: "G-QRX3JMX826"
+
+};
+
+
+
+const app = initializeApp(firebaseConfig);
+
+
+const db = getFirestore(app);
+
+
+
+
+
+let stockPecho = 45;
+
+let stockPierna = 45;
+
+
+
+
+
+// CARGAR STOCK
+
+async function cargarStock(){
+
+
+const ref = doc(
+db,
+"configuracion",
+"stock"
+);
+
+
+const dato = await getDoc(ref);
+
+
+
+if(dato.exists()){
+
+
+stockPecho = dato.data().pecho;
+
+stockPierna = dato.data().pierna;
+
+
+}else{
+
+
+await setDoc(ref,{
+
+pecho:45,
+
+pierna:45
+
+});
+
+
+stockPecho=45;
+
+stockPierna=45;
+
+}
+
+
+
+document.getElementById("pecho").innerHTML=stockPecho;
+
+document.getElementById("pierna").innerHTML=stockPierna;
+
+
+}
+
+
+
+
+
+
+
+// REGISTRAR PEDIDO
+
+
+window.registrar = async function(){
+
+
+let nombre =
+document.getElementById("nombre").value;
+
+
+let area =
+document.getElementById("area").value;
+
+
+let pecho =
+Number(document.getElementById("cantidadPecho").value);
+
+
+
+let pierna =
+Number(document.getElementById("cantidadPierna").value);
+
+
+
+
+
+if(nombre=="" || area==""){
+
+alert("Ingrese nombre y área");
+
+return;
+
+}
+
+
+
+if(pecho==0 && pierna==0){
+
+alert("Ingrese cantidad");
+
+return;
+
+}
+
+
+
+if(pecho > stockPecho){
+
+alert("No hay suficiente pecho");
+
+return;
+
+}
+
+
+
+if(pierna > stockPierna){
+
+alert("No hay suficiente pierna");
+
+return;
+
+}
+
+
+
+
+
+
+
+// GUARDAR PEDIDO
+
+
+await addDoc(
+collection(db,"Pedidos"),
+{
+
+nombre:nombre,
+
+area:area,
+
+pecho:pecho,
+
+pierna:pierna,
+
+total:pecho+pierna
+
+}
+
+);
+
+
+
+
+
+
+// RESTAR STOCK
+
+
+stockPecho = stockPecho - pecho;
+
+
+stockPierna = stockPierna - pierna;
+
+
+
+
+
+
+// ACTUALIZAR FIREBASE
+
+
+await setDoc(
+
+doc(db,"configuracion","stock"),
+
+{
+
+pecho:stockPecho,
+
+pierna:stockPierna
+
+}
+
+);
+
+
+
+
+
+// ACTUALIZAR PANTALLA
+
+
+document.getElementById("pecho").innerHTML =
+stockPecho;
+
+
+document.getElementById("pierna").innerHTML =
+stockPierna;
+
+
+
+
+
+// MOSTRAR TABLA
+
+
+mostrarFila(
+
+nombre,
+
+area,
+
+pecho,
+
+pierna,
+
+pecho+pierna
+
+);
+
+
+
+
+
+alert("Pedido registrado");
+
+
+
+}
+
+
+
+
+
+
+
+
+function mostrarFila(
+nombre,
+area,
+pecho,
+pierna,
+total
+){
+
+
+let fila=document.createElement("tr");
+
+
+fila.innerHTML=`
+
+<td>${nombre}</td>
+
+<td>${area}</td>
+
+<td>${pecho}</td>
+
+<td>${pierna}</td>
+
+<td>${total}</td>
+
+`;
+
+
+
+document.getElementById("lista")
+.appendChild(fila);
+
+
+}
+
+
+
+
+
+
+
+// CARGAR PEDIDOS GUARDADOS
+
+
+async function cargarPedidos(){
+
+
+const datos =
+await getDocs(collection(db,"Pedidos"));
+
+
+
+datos.forEach((doc)=>{
+
+
+let p=doc.data();
+
+
+mostrarFila(
+
+p.nombre,
+
+p.area,
+
+p.pecho,
+
+p.pierna,
+
+p.total
+
+);
+
+
+});
+
+
+}
+
+
+
+
+
+cargarStock();
+
+cargarPedidos();
+
+
+
+</script>
+
+
+</body>
+
+</html>
